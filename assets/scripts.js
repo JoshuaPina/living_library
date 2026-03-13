@@ -163,6 +163,13 @@
                 materials: `${domainCounts['Data Engineering']} material`
             },
         ];
+
+        // Create lookups for performance optimization
+        const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
+        const topicNodeMap = Object.fromEntries(nodes.map(n => [
+            n.label.toLowerCase().replace(/\n/g, ' '),
+            n
+        ]));
         
         // Connections representing relationships
         const connections = [
@@ -318,8 +325,8 @@
         }
         
         function drawConnection(conn) {
-            const fromNode = nodes.find(n => n.id === conn.from);
-            const toNode = nodes.find(n => n.id === conn.to);
+            const fromNode = nodeMap[conn.from];
+            const toNode = nodeMap[conn.to];
             
             if (!fromNode || !toNode) return;
             
@@ -720,9 +727,7 @@ closeModalBtn.onclick = () => {
 function selectTopic(topicName) {
     // Find the node on the graph that matches the topic name
     // This is a simple text match, you can make it more robust
-    const targetNode = nodes.find(n => 
-        n.label.toLowerCase().replace('\n', ' ') === topicName.toLowerCase()
-    );
+    const targetNode = topicNodeMap[topicName.toLowerCase()];
 
     if (targetNode) {
         // Set this as the selected node
