@@ -28,3 +28,4 @@ assets/data_pdfs/
 *.swp
 *.swo
 .venv/
+venv/
