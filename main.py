@@ -59,7 +59,7 @@ embedding_model = None
 
 engine = create_async_engine(
     DATABASE_URL,
-    echo=False,  # Set to True for SQL debugging
+    echo=True,  # Set to True for SQL debugging
     poolclass=NullPool,  # Disable connection pooling for transaction pooler
     connect_args={"prepared_statement_cache_size": 0}
 )
