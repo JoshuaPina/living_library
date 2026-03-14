@@ -1,6 +1,4 @@
 function openBook(material_id) {
-    console.log("Opening book viewer for material ID:", material_id);
-    
     // This will redirect the browser to a new page,
     // passing the material_id in the URL
     window.location.href = `/app/viewer.html?id=${material_id}`;
