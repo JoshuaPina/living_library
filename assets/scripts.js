@@ -579,6 +579,17 @@ animate();
         
 loadDynamicSidebar(); // <-- Add this call
 
+// --- Security Enhancement: XSS Sanitization ---
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // --- Semantic Search Functionality ---
 const searchForm = document.getElementById('search-form');
 const searchInput = document.getElementById('search-input');
@@ -625,12 +636,12 @@ searchForm.addEventListener('submit', async (e) => {
 
             item.innerHTML = `
                 <span class="title">
-                    <a href="/app/viewer.html?id=${result.material_id}" target="_blank">
-                        ${result.title}
+                    <a href="/app/viewer.html?id=${escapeHTML(result.material_id)}" target="_blank">
+                        ${escapeHTML(result.title)}
                     </a>
                 </span>
-                <div class="page">Page: ${result.page_number}</div>
-                <div class="snippet">"...${snippet}..."</div>
+                <div class="page">Page: ${escapeHTML(result.page_number)}</div>
+                <div class="snippet">"...${escapeHTML(snippet)}..."</div>
             `;
             searchResults.appendChild(item);
         });
