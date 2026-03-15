@@ -55,6 +55,17 @@
     </footer>
 
     <script>
+        // Helper to prevent XSS
+        function escapeHTML(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         const urlParams = new URLSearchParams(window.location.search);
         const materialId = urlParams.get('id');
 
@@ -98,7 +109,7 @@
 
             } catch (error) {
                 console.error('Error loading material:', error);
-                document.body.innerHTML = `<h1>Error loading material.</h1><p>${error.message}</p>`;
+                document.body.innerHTML = `<h1>Error loading material.</h1><p>${escapeHTML(error.message)}</p>`;
             }
         }
 
