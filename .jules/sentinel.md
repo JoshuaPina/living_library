@@ -7,3 +7,8 @@
 
 ## Daily Process Notes
 * Always run `python3 -m py_compile [filename]` or `ruff check [filename]` as quick checks.
+
+## 2024-05-28 - [Cross-Site Scripting (XSS) via innerHTML]
+**Vulnerability:** User-controlled data (like `material.title`, `node.label`, `error.message`) was being directly interpolated into DOM elements using `.innerHTML` in `app/scripts.js`, `assets/scripts.js`, and `app/viewer.html`.
+**Learning:** This exposes the application to XSS attacks if a malicious user inputs scripts into fields like material titles or topics, which would then be executed in the browsers of other users viewing the application.
+**Prevention:** Always sanitize dynamic, user-provided data before inserting it into `.innerHTML`. We added an `escapeHTML` helper function to replace sensitive HTML characters (`&`, `<`, `>`, `"`, `'`) with their respective HTML entities, neutralizing any potential script execution.
