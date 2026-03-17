@@ -1,3 +1,17 @@
+// Function to sanitize user input to prevent XSS
+function escapeHTML(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/[&<>'"]/g,
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag] || tag)
+    );
+}
+
 function openBook(material_id) {
     console.log("Opening book viewer for material ID:", material_id);
     
@@ -73,21 +87,28 @@ function createBookCard(material) {
     // Get the first topic for the color, or use 'Uncategorized'
     const firstTopic = material.topics ? material.topics.split(',')[0].trim() : 'Uncategorized';
     
+    // Securely escape HTML characters from user input to prevent XSS
+    const safeTitle = escapeHTML(material.title || 'Unknown Title');
+    const safeAuthors = escapeHTML(material.authors || 'Unknown');
+    const safeTopics = escapeHTML(material.topics || 'Uncategorized');
+    const safeYear = escapeHTML(material.year ? material.year.toString() : 'N/A');
+    const safePages = escapeHTML(material.pages ? material.pages.toString() : '?');
+
     div.innerHTML = `
         <div class="book-cover">
             <div class="book-spine" style="background: ${getTopicColor(firstTopic)}">
-                <h3>${material.title}</h3>
+                <h3>${safeTitle}</h3>
             </div>
         </div>
         
         <div class="book-info">
-            <h4>${material.title}</h4>
-            <p class="author">${material.authors || 'Unknown'}</p>
-            <p class="topic">${material.topics || 'Uncategorized'}</p>
+            <h4>${safeTitle}</h4>
+            <p class="author">${safeAuthors}</p>
+            <p class="topic">${safeTopics}</p>
             
             <div class="book-meta">
-                <span class="year">${material.year || 'N/A'}</span>
-                <span class="pages">${material.pages || '?'} pages</span>
+                <span class="year">${safeYear}</span>
+                <span class="pages">${safePages} pages</span>
             </div>
             
             ${isAccessible 
