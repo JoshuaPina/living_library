@@ -98,7 +98,16 @@
 
             } catch (error) {
                 console.error('Error loading material:', error);
-                document.body.innerHTML = `<h1>Error loading material.</h1><p>${error.message}</p>`;
+
+                // Prevent XSS
+                const errorMsg = String(error.message)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+
+                document.body.innerHTML = `<h1>Error loading material.</h1><p>${errorMsg}</p>`;
             }
         }
 

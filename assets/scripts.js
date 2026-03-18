@@ -504,6 +504,17 @@ async function loadDynamicSidebar() {
             }
         };
 
+        // Helper to prevent XSS
+        function escapeHTML(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         // Get all materials
         const dataBrowse = await fetchJson('/api/library/browse', 'Browse');
         const materials = dataBrowse.materials;
@@ -623,14 +634,25 @@ searchForm.addEventListener('submit', async (e) => {
                 ? result.chunk_text.substring(0, 150) + '...' 
                 : result.chunk_text;
 
+            // Prevent XSS
+            function escapeHTML(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
             item.innerHTML = `
                 <span class="title">
-                    <a href="/app/viewer.html?id=${result.material_id}" target="_blank">
-                        ${result.title}
+                    <a href="/app/viewer.html?id=${escapeHTML(result.material_id)}" target="_blank">
+                        ${escapeHTML(result.title)}
                     </a>
                 </span>
-                <div class="page">Page: ${result.page_number}</div>
-                <div class="snippet">"...${snippet}..."</div>
+                <div class="page">Page: ${escapeHTML(result.page_number)}</div>
+                <div class="snippet">"...${escapeHTML(snippet)}..."</div>
             `;
             searchResults.appendChild(item);
         });

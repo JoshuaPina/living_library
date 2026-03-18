@@ -7,3 +7,8 @@
 
 ## Daily Process Notes
 * Always run `python3 -m py_compile [filename]` or `ruff check [filename]` as quick checks.
+
+## 2024-05-29 - [Cross-Site Scripting (XSS) in DOM Manipulation]
+**Vulnerability:** User-provided or database-derived data (e.g., titles, authors, error messages) was directly inserted into the DOM using `innerHTML` without sanitization.
+**Learning:** This codebase relies on native DOM manipulation. Using `innerHTML` with unsanitized inputs allows an attacker to inject arbitrary scripts (XSS).
+**Prevention:** Use an `escapeHTML` helper function to sanitize all dynamic data before using it in `innerHTML`, or prefer safe properties like `textContent` when assigning raw text.
