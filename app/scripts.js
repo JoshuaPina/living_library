@@ -6,6 +6,17 @@ function openBook(material_id) {
     window.location.href = `/app/viewer.html?id=${material_id}`;
 }
 
+// Helper to prevent XSS
+function escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // Function to get a consistent color for a topic
 function getTopicColor(topicStr) {
     if (!topicStr) {
@@ -76,18 +87,18 @@ function createBookCard(material) {
     div.innerHTML = `
         <div class="book-cover">
             <div class="book-spine" style="background: ${getTopicColor(firstTopic)}">
-                <h3>${material.title}</h3>
+                <h3>${escapeHTML(material.title)}</h3>
             </div>
         </div>
         
         <div class="book-info">
-            <h4>${material.title}</h4>
-            <p class="author">${material.authors || 'Unknown'}</p>
-            <p class="topic">${material.topics || 'Uncategorized'}</p>
+            <h4>${escapeHTML(material.title)}</h4>
+            <p class="author">${escapeHTML(material.authors || 'Unknown')}</p>
+            <p class="topic">${escapeHTML(material.topics || 'Uncategorized')}</p>
             
             <div class="book-meta">
-                <span class="year">${material.year || 'N/A'}</span>
-                <span class="pages">${material.pages || '?'} pages</span>
+                <span class="year">${escapeHTML(material.year || 'N/A')}</span>
+                <span class="pages">${escapeHTML(material.pages || '?')} pages</span>
             </div>
             
             ${isAccessible 
