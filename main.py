@@ -8,23 +8,25 @@ including PDF processing, semantic search using vector embeddings, and database 
 The application uses FastAPI for the web framework, SQLAlchemy for asynchronous database
 operations, and Supabase for authentication and storage in some contexts.
 """
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional, List
+from typing import Optional
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import os
+import logging
 from dotenv import load_dotenv
 from supabase import Client, create_client
-import io
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool
-from sqlalchemy import text, select
+from sqlalchemy import text
 from sentence_transformers import SentenceTransformer
 import fitz  # PyMuPDF
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -224,10 +226,11 @@ async def health_check():
     """
     async with async_session() as session:
         try:
-            result = await session.execute(text("SELECT 1"))
+            await session.execute(text("SELECT 1"))
             return {"status": "healthy", "database": "connected"}
         except Exception as e:
-            return {"status": "unhealthy", "error": str(e)}
+            logger.exception("Health check failed")
+            return {"status": "unhealthy", "error": "Internal server error"}
 
 
 @app.get("/api/stats")
@@ -262,7 +265,8 @@ async def get_stats():
                 }
             return {"error": "No stats available"}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.exception("Internal server error")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/library/browse")
@@ -375,7 +379,8 @@ async def browse_library(
                 ]
             }
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.exception("Internal server error")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/library/topics")
@@ -397,7 +402,8 @@ async def get_topics():
             topics = [row[0] for row in result.fetchall()]
             return {"topics": topics}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.exception("Internal server error")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/api/search/semantic")
@@ -485,7 +491,8 @@ async def semantic_search(request: SearchRequest):
             await conn.close()
             
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/pdf/{material_id}/page/{page_num}")
 async def get_pdf_page(material_id: int, page_num: int):
@@ -587,12 +594,14 @@ async def get_pdf_page(material_id: int, page_num: int):
             return Response(content=img_bytes, media_type="image/png")
            
         except HTTPException:
-            if doc: doc.close()
+            if doc:
+                doc.close()
             raise
         except Exception as e:
-            if doc: doc.close()
-            print(f"Unexpected error in get_pdf_page: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            if doc:
+                doc.close()
+            logger.exception("Unexpected error in get_pdf_page")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/material/{material_id}/info")
@@ -714,7 +723,8 @@ async def get_duplicates(status: str = "pending"):
                 ]
             }
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.exception("Internal server error")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # Mount static files (for serving HTML/CSS/JS)

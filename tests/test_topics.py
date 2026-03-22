@@ -1,4 +1,3 @@
-import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -44,4 +43,4 @@ def test_get_topics_database_error():
         response = client.get("/api/library/topics")
 
     assert response.status_code == 500
-    assert response.json() == {"detail": "Database connection failed"}
+    assert response.json() == {"detail": "Internal server error"}
