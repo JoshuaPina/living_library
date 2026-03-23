@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 """
 FastAPI Backend for Living Library.
 
@@ -227,7 +230,8 @@ async def health_check():
             result = await session.execute(text("SELECT 1"))
             return {"status": "healthy", "database": "connected"}
         except Exception as e:
-            return {"status": "unhealthy", "error": str(e)}
+            logger.exception("Database connection failed during health check")
+            return {"status": "unhealthy", "error": "Database connection failed"}
 
 
 @app.get("/api/stats")
@@ -262,7 +266,8 @@ async def get_stats():
                 }
             return {"error": "No stats available"}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.exception("Error fetching stats")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/library/browse")
@@ -375,7 +380,8 @@ async def browse_library(
                 ]
             }
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.exception("Error browsing library")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/library/topics")
@@ -397,7 +403,8 @@ async def get_topics():
             topics = [row[0] for row in result.fetchall()]
             return {"topics": topics}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.exception("Error fetching topics")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/api/search/semantic")
@@ -485,7 +492,8 @@ async def semantic_search(request: SearchRequest):
             await conn.close()
             
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Error during semantic search")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/pdf/{material_id}/page/{page_num}")
 async def get_pdf_page(material_id: int, page_num: int):
@@ -591,8 +599,8 @@ async def get_pdf_page(material_id: int, page_num: int):
             raise
         except Exception as e:
             if doc: doc.close()
-            print(f"Unexpected error in get_pdf_page: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.exception(f"Unexpected error in get_pdf_page for material_id={material_id}, page_num={page_num}")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/material/{material_id}/info")
@@ -714,7 +722,8 @@ async def get_duplicates(status: str = "pending"):
                 ]
             }
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.exception("Error fetching duplicates")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # Mount static files (for serving HTML/CSS/JS)
