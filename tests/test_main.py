@@ -50,7 +50,7 @@ def test_health_check_unhealthy(client, mock_db_session):
 
     response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "unhealthy", "error": "DB Connection Failed"}
+    assert response.json() == {"status": "unhealthy", "error": "Internal server error"}
 
 def test_get_stats_success(client, mock_db_session):
     mock_result = MagicMock()
@@ -82,7 +82,7 @@ def test_get_stats_exception(client, mock_db_session):
 
     response = client.get("/api/stats")
     assert response.status_code == 500
-    assert response.json() == {"detail": "DB Error"}
+    assert response.json() == {"detail": "Internal server error"}
 
 def test_browse_library_success(client, mock_db_session):
     mock_result = MagicMock()
@@ -104,7 +104,7 @@ def test_browse_library_exception(client, mock_db_session):
 
     response = client.get("/api/library/browse")
     assert response.status_code == 500
-    assert response.json() == {"detail": "Browse error"}
+    assert response.json() == {"detail": "Internal server error"}
 
 def test_get_topics_success(client, mock_db_session):
     mock_result = MagicMock()
@@ -120,7 +120,7 @@ def test_get_topics_exception(client, mock_db_session):
 
     response = client.get("/api/library/topics")
     assert response.status_code == 500
-    assert response.json() == {"detail": "Topic error"}
+    assert response.json() == {"detail": "Internal server error"}
 
 
 @patch("asyncpg.connect", new_callable=AsyncMock)
@@ -158,7 +158,7 @@ def test_semantic_search_exception(mock_connect, client):
     response = client.post("/api/search/semantic", json={"query": "test query"})
 
     assert response.status_code == 500
-    assert response.json() == {"detail": "Search DB error"}
+    assert response.json() == {"detail": "Internal server error"}
 
 def test_get_material_info_success_supabase(client, mock_db_session):
     mock_result = MagicMock()
@@ -239,7 +239,7 @@ def test_get_duplicates_exception(client, mock_db_session):
 
     response = client.get("/api/duplicates")
     assert response.status_code == 500
-    assert response.json() == {"detail": "Duplicates error"}
+    assert response.json() == {"detail": "Internal server error"}
 
 
 @patch("main.fitz.open")

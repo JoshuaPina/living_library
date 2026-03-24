@@ -8,6 +8,7 @@ including PDF processing, semantic search using vector embeddings, and database 
 The application uses FastAPI for the web framework, SQLAlchemy for asynchronous database
 operations, and Supabase for authentication and storage in some contexts.
 """
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
@@ -16,6 +17,9 @@ from typing import Optional, List
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 from dotenv import load_dotenv
 from supabase import Client, create_client
 import io
@@ -37,7 +41,9 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 elif DATABASE_URL and DATABASE_URL.startswith("postgresql+psycopg2://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgresql+psycopg2://", "postgresql+asyncpg://"
+    )
 
 if not DATABASE_URL:
     raise RuntimeError(
@@ -61,20 +67,17 @@ engine = create_async_engine(
     DATABASE_URL,
     echo=False,  # Set to True for SQL debugging
     poolclass=NullPool,  # Disable connection pooling for transaction pooler
-    connect_args={"prepared_statement_cache_size": 0}
+    connect_args={"prepared_statement_cache_size": 0},
 )
 
 # Session factory
-async_session = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False
-)
+async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
 # ============================================================================
 # LIFESPAN EVENTS (Load model at startup)
 # ============================================================================
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -92,14 +95,14 @@ async def lifespan(app: FastAPI):
         None: Control is yielded back to the application.
     """
     global embedding_model
-    
+
     # Startup
     print("🚀 Loading embedding model...")
-    embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
     print("✓ Embedding model loaded")
-    
+
     yield
-    
+
     # Shutdown
     print("👋 Shutting down...")
     await engine.dispose()
@@ -113,13 +116,17 @@ app = FastAPI(
     title="Living Library API",
     description="Semantic search and knowledge management system",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # CORS middleware (for frontend)
 # SECURITY: Read allowed origins from environment to prevent overly permissive CORS
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000")
-allowed_origins_list = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()]
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000"
+)
+allowed_origins_list = [
+    origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -133,6 +140,7 @@ app.add_middleware(
 # ============================================================================
 # PYDANTIC MODELS
 # ============================================================================
+
 
 class Material(BaseModel):
     """
@@ -149,6 +157,7 @@ class Material(BaseModel):
         status (Optional[str]): Processing status (e.g., "pending", "processed").
         topic (Optional[str]): Primary topic associated with the material.
     """
+
     material_id: int
     title: str
     subtitle: Optional[str] = None
@@ -158,6 +167,7 @@ class Material(BaseModel):
     tier: Optional[int] = None
     status: Optional[str] = None
     topic: Optional[str] = None
+
 
 class SearchRequest(BaseModel):
     """
@@ -170,11 +180,13 @@ class SearchRequest(BaseModel):
         year_max (Optional[int]): Filter results by maximum publication year.
         limit (int): Maximum number of results to return (default 10).
     """
+
     query: str
     topic: Optional[str] = None
     year_min: Optional[int] = None
     year_max: Optional[int] = None
     limit: int = 10
+
 
 class SearchResult(BaseModel):
     """
@@ -188,6 +200,7 @@ class SearchResult(BaseModel):
         chunk_text (str): The actual text content of the chunk.
         similarity (float): Similarity score (0-1) indicating relevance to the query.
     """
+
     chunk_id: int
     material_id: int
     title: str
@@ -199,6 +212,7 @@ class SearchResult(BaseModel):
 # ============================================================================
 # API ENDPOINTS
 # ============================================================================
+
 
 @app.get("/")
 async def root():
@@ -227,7 +241,8 @@ async def health_check():
             result = await session.execute(text("SELECT 1"))
             return {"status": "healthy", "database": "connected"}
         except Exception as e:
-            return {"status": "unhealthy", "error": str(e)}
+            logger.error("Health check failed", exc_info=e)
+            return {"status": "unhealthy", "error": "Internal server error"}
 
 
 @app.get("/api/stats")
@@ -246,11 +261,9 @@ async def get_stats():
     """
     async with async_session() as session:
         try:
-            result = await session.execute(
-                text("SELECT * FROM get_material_stats()")
-            )
+            result = await session.execute(text("SELECT * FROM get_material_stats()"))
             stats = result.fetchone()
-            
+
             if stats:
                 return {
                     "total_materials": stats[0],
@@ -258,11 +271,12 @@ async def get_stats():
                     "total_topics": stats[2],
                     "total_chunks": stats[3],
                     "total_embeddings": stats[4],
-                    "materials_by_tier": stats[5]
+                    "materials_by_tier": stats[5],
                 }
             return {"error": "No stats available"}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Operation failed", exc_info=e)
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/library/browse")
@@ -271,7 +285,7 @@ async def browse_library(
     tier: Optional[int] = None,
     status: Optional[str] = None,
     limit: int = 100,
-    offset: int = 0
+    offset: int = 0,
 ):
     """
     Browse library materials with optional filtering and pagination.
@@ -317,9 +331,9 @@ async def browse_library(
                 LEFT JOIN file_asset fa ON fa.material_id = m.material_id AND fa.is_primary = TRUE
                 WHERE m.is_global = TRUE
             """
-            
+
             params = {}
-            
+
             if topic:
                 query += """
                     AND m.material_id IN (
@@ -329,16 +343,16 @@ async def browse_library(
                         WHERE t2.topic_name = :topic
                     )
                 """
-                params['topic'] = topic
-            
+                params["topic"] = topic
+
             if tier:
                 query += " AND m.tier = :tier"
-                params['tier'] = tier
-            
+                params["tier"] = tier
+
             if status:
                 query += " AND m.status = :status"
-                params['status'] = status
-            
+                params["status"] = status
+
             query += """
                 GROUP BY m.material_id, m.title, m.subtitle, m.edition, 
                          m.year, m.type, m.tier, m.status,
@@ -346,13 +360,13 @@ async def browse_library(
                 ORDER BY m.title
                 LIMIT :limit OFFSET :offset
             """
-            
-            params['limit'] = limit
-            params['offset'] = offset
-            
+
+            params["limit"] = limit
+            params["offset"] = offset
+
             result = await session.execute(text(query), params)
             materials = result.fetchall()
-            
+
             return {
                 "total": len(materials),
                 "materials": [
@@ -369,13 +383,14 @@ async def browse_library(
                         "authors": m[9],
                         "pages": m[10],
                         "is_accessible": m[11],
-                        "storage_provider": m[12]
+                        "storage_provider": m[12],
                     }
                     for m in materials
-                ]
+                ],
             }
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Operation failed", exc_info=e)
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/library/topics")
@@ -397,7 +412,8 @@ async def get_topics():
             topics = [row[0] for row in result.fetchall()]
             return {"topics": topics}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Operation failed", exc_info=e)
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/api/search/semantic")
@@ -407,20 +423,20 @@ async def semantic_search(request: SearchRequest):
     """
     if not embedding_model:
         raise HTTPException(status_code=503, detail="Embedding model not loaded")
-    
+
     import asyncpg
-    
+
     # Get raw connection string
     db_url = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
-    
+
     try:
         # Create query embedding
         query_embedding = embedding_model.encode(request.query).tolist()
-        embedding_str = '[' + ','.join(map(str, query_embedding)) + ']'
-        
+        embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
+
         # Connect directly with asyncpg
         conn = await asyncpg.connect(db_url)
-        
+
         try:
             # Build base query
             query_sql = """
@@ -436,10 +452,10 @@ async def semantic_search(request: SearchRequest):
                 JOIN file_asset fa ON fa.file_id = tc.file_id
                 JOIN material m ON m.material_id = fa.material_id
             """
-            
+
             params = [embedding_str]
             where_clauses = []
-            
+
             if request.topic:
                 query_sql += """
                     JOIN material_topic mt ON mt.material_id = m.material_id
@@ -447,45 +463,47 @@ async def semantic_search(request: SearchRequest):
                 """
                 where_clauses.append(f"t.topic_name = ${len(params) + 1}")
                 params.append(request.topic)
-            
+
             if request.year_min:
                 where_clauses.append(f"m.year >= ${len(params) + 1}")
                 params.append(request.year_min)
-            
+
             if request.year_max:
                 where_clauses.append(f"m.year <= ${len(params) + 1}")
                 params.append(request.year_max)
-            
+
             if where_clauses:
                 query_sql += " WHERE " + " AND ".join(where_clauses)
-            
+
             query_sql += f"""
                 ORDER BY ce.embedding <=> $1::vector
                 LIMIT ${len(params) + 1}
             """
             params.append(request.limit)
-            
+
             results = await conn.fetch(query_sql, *params)
-            
+
             return {
                 "query": request.query,
                 "results": [
                     {
-                        "chunk_id": r['chunk_id'],
-                        "material_id": r['material_id'],
-                        "title": r['title'],
-                        "page_number": r['page_number'],
-                        "chunk_text": r['chunk_text'][:500],
-                        "similarity": float(r['similarity'])
+                        "chunk_id": r["chunk_id"],
+                        "material_id": r["material_id"],
+                        "title": r["title"],
+                        "page_number": r["page_number"],
+                        "chunk_text": r["chunk_text"][:500],
+                        "similarity": float(r["similarity"]),
                     }
                     for r in results
-                ]
+                ],
             }
         finally:
             await conn.close()
-            
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Operation failed", exc_info=e)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @app.get("/api/pdf/{material_id}/page/{page_num}")
 async def get_pdf_page(material_id: int, page_num: int):
@@ -525,13 +543,15 @@ async def get_pdf_page(material_id: int, page_num: int):
                     AND fa.is_primary = TRUE
                     LIMIT 1
                 """),
-                {"material_id": material_id}
+                {"material_id": material_id},
             )
             file_info = result.fetchone()
-           
+
             if not file_info:
-                raise HTTPException(status_code=404, detail="File metadata not found in database")
-           
+                raise HTTPException(
+                    status_code=404, detail="File metadata not found in database"
+                )
+
             # Unpack the data from the query
             storage_path, storage_provider, storage_bucket, is_accessible = file_info
 
@@ -539,60 +559,78 @@ async def get_pdf_page(material_id: int, page_num: int):
                 raise HTTPException(status_code=403, detail="File not accessible")
 
             # --- NEW HYBRID LOGIC ---
-           
-            if storage_provider == 'supabase':
+
+            if storage_provider == "supabase":
                 # --- CASE 1: Get from Supabase Storage ---
                 if not supabase_client:
-                    raise HTTPException(status_code=500, detail="Supabase client not configured")
-               
+                    raise HTTPException(
+                        status_code=500, detail="Supabase client not configured"
+                    )
+
                 if not storage_bucket:
-                    raise HTTPException(status_code=500, detail="Supabase file is missing storage_bucket")
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Supabase file is missing storage_bucket",
+                    )
 
                 try:
                     # storage_path is just the filename, e.g., "my_book.pdf"
                     # storage_bucket is "living_library_materials"
-                    file_bytes = supabase_client.storage.from_(storage_bucket).download(storage_path)
+                    file_bytes = supabase_client.storage.from_(storage_bucket).download(
+                        storage_path
+                    )
                     doc = fitz.open(stream=file_bytes, filetype="pdf")
-               
-                except Exception as e:
-                    print(f"Error downloading from Supabase: {e}")
-                    raise HTTPException(status_code=500, detail=f"Failed to download from Supabase: {storage_bucket}/{storage_path}")
 
-            else:  
+                except Exception as e:
+                    logger.error(
+                        f"Error downloading from Supabase: {storage_bucket}/{storage_path}",
+                        exc_info=e,
+                    )
+                    raise HTTPException(status_code=500, detail="Internal server error")
+
+            else:
                 # --- CASE 2: Get from Local folder ---
                 # storage_path is "data_pdfs/my_book.pdf"
                 pdf_path = PDF_BASE_DIR / storage_path
-               
+
                 if not pdf_path.exists():
                     print(f"File not found on disk: {pdf_path}")
-                    raise HTTPException(status_code=404, detail="PDF file not found on disk")
-               
+                    raise HTTPException(
+                        status_code=404, detail="PDF file not found on disk"
+                    )
+
                 doc = fitz.open(pdf_path)
-           
+
             # --- END HYBRID LOGIC ---
 
             if not doc:
-                raise HTTPException(status_code=500, detail="Failed to open PDF document")
+                raise HTTPException(
+                    status_code=500, detail="Failed to open PDF document"
+                )
 
             if page_num < 1 or page_num > len(doc):
                 doc.close()
-                raise HTTPException(status_code=404, detail="Page not found in document")
-           
+                raise HTTPException(
+                    status_code=404, detail="Page not found in document"
+                )
+
             # Render page as image
             page = doc[page_num - 1]
             pix = page.get_pixmap(dpi=150)
             img_bytes = pix.tobytes("png")
             doc.close()
-           
+
             return Response(content=img_bytes, media_type="image/png")
-           
+
         except HTTPException:
-            if doc: doc.close()
+            if doc:
+                doc.close()
             raise
         except Exception as e:
-            if doc: doc.close()
-            print(f"Unexpected error in get_pdf_page: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            if doc:
+                doc.close()
+            logger.error("Unexpected error in get_pdf_page", exc_info=e)
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/material/{material_id}/info")
@@ -630,7 +668,7 @@ async def get_material_info(material_id: int):
                   AND fa.is_primary = TRUE
                 LIMIT 1
             """),
-            {"material_id": material_id}
+            {"material_id": material_id},
         )
         file_info = result.fetchone()
 
@@ -642,29 +680,30 @@ async def get_material_info(material_id: int):
         if not is_accessible:
             raise HTTPException(status_code=403, detail="File not accessible")
 
-        if storage_provider == 'supabase':
+        if storage_provider == "supabase":
             if not supabase_client:
-                raise HTTPException(status_code=500, detail="Supabase client not configured")
+                raise HTTPException(
+                    status_code=500, detail="Supabase client not configured"
+                )
 
             # Get the public URL
             try:
-                public_url = supabase_client.storage.from_(storage_bucket).get_public_url(storage_path)
-                return {
-                    "title": title,
-                    "type": "supabase",
-                    "url": public_url
-                }
+                public_url = supabase_client.storage.from_(
+                    storage_bucket
+                ).get_public_url(storage_path)
+                return {"title": title, "type": "supabase", "url": public_url}
             except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Could not get Supabase URL: {e}")
+                logger.error("Could not get Supabase URL", exc_info=e)
+                raise HTTPException(status_code=500, detail="Internal server error")
 
         else:  # 'local' or other
             return {
                 "title": title,
-                "type": "local"
+                "type": "local",
                 # We will use the page-by-page API for local files
             }
 
-        
+
 @app.get("/api/duplicates")
 async def get_duplicates(status: str = "pending"):
     """
@@ -696,10 +735,10 @@ async def get_duplicates(status: str = "pending"):
                     WHERE dc.status = :status
                     ORDER BY dc.similarity_score DESC
                 """),
-                {"status": status}
+                {"status": status},
             )
             duplicates = result.fetchall()
-            
+
             return {
                 "duplicates": [
                     {
@@ -708,13 +747,14 @@ async def get_duplicates(status: str = "pending"):
                         "title_2": d[2],
                         "similarity_score": float(d[3]),
                         "detection_method": d[4],
-                        "status": d[5]
+                        "status": d[5],
                     }
                     for d in duplicates
                 ]
             }
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Operation failed", exc_info=e)
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # Mount static files (for serving HTML/CSS/JS)
@@ -729,33 +769,30 @@ if __name__ == "__main__":
 
     # --- New Logging Setup ---
     LOG_FILE = "living_library.log"  # The file to save logs to
-    
+
     # 1. Clear any existing handlers
     logging.root.handlers = []
 
     # 2. Create handler for the console (using rich)
-    console_handler = RichHandler(
-        rich_tracebacks=True,
-        markup=True
-    )
+    console_handler = RichHandler(rich_tracebacks=True, markup=True)
 
     # 3. Create handler for the file
     # This will create a new log file when it reaches 5MB, and keep 3 old ones
     file_handler = RotatingFileHandler(
-        LOG_FILE, maxBytes=5*1024*1024, backupCount=3
+        LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=3
     )
-    file_handler.setFormatter(logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(message)s"
-    ))
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    )
 
     # 4. Add both handlers to the root logger
     logging.basicConfig(
         level="INFO",
         format="%(message)s",
         datefmt="[%X]",
-        handlers=[console_handler, file_handler]  # Send logs to both places
+        handlers=[console_handler, file_handler],  # Send logs to both places
     )
-    
+
     # Silence Uvicorn's default loggers
     logging.getLogger("uvicorn.access").handlers = [console_handler, file_handler]
     logging.getLogger("uvicorn.error").handlers = [console_handler, file_handler]
@@ -766,5 +803,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8000,
         reload=True,
-        log_config=None  # We've already configured logging
+        log_config=None,  # We've already configured logging
     )
