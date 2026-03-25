@@ -348,3 +348,15 @@ def test_get_pdf_page_out_of_bounds(mock_fitz_open, client, mock_db_session, tmp
         assert response.status_code == 404
         assert response.json() == {"detail": "Page not found in document"}
         assert mock_doc.close.called
+
+@patch("main.fitz.open")
+def test_get_pdf_page_path_traversal(mock_fitz_open, client, mock_db_session, tmp_path):
+    mock_result = MagicMock()
+    # Attempt path traversal
+    mock_result.fetchone.return_value = ("../etc/passwd", "local", None, True)
+    mock_db_session.execute.return_value = mock_result
+
+    with patch("main.PDF_BASE_DIR", tmp_path):
+        response = client.get("/api/pdf/1/page/1")
+        assert response.status_code == 403
+        assert response.json() == {"detail": "Invalid file path"}
