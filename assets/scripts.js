@@ -1,3 +1,14 @@
+// --- Security Enhancement: XSS Sanitization ---
+function escapeHTML(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -480,6 +491,7 @@ canvas.addEventListener('mousedown', (e) => {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
             offsetX = width / 2;
+
             offsetY = height / 2;
         });
 
@@ -572,23 +584,13 @@ async function loadDynamicSidebar() {
     } catch (error) {
         console.error("Failed to load dynamic sidebar:", error);
         const errorMsg = error.message || "Unknown error";
-        document.getElementById('dynamic-browse-list').innerHTML = `<p>Error loading content: ${errorMsg}</p>`;
+        document.getElementById('dynamic-browse-list').innerHTML = `<p>Error loading content: ${escapeHTML(errorMsg)}</p>`;
     }
 }
 animate();
         
 loadDynamicSidebar(); // <-- Add this call
 
-// --- Security Enhancement: XSS Sanitization ---
-function escapeHTML(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
 
 // --- Semantic Search Functionality ---
 const searchForm = document.getElementById('search-form');
