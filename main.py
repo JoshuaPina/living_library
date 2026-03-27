@@ -9,11 +9,11 @@ The application uses FastAPI for the web framework, SQLAlchemy for asynchronous 
 operations, and Supabase for authentication and storage in some contexts.
 """
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional, List
+from typing import Optional
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import os
@@ -22,10 +22,9 @@ import logging
 logger = logging.getLogger(__name__)
 from dotenv import load_dotenv
 from supabase import Client, create_client
-import io
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool
-from sqlalchemy import text, select
+from sqlalchemy import text
 from sentence_transformers import SentenceTransformer
 import fitz  # PyMuPDF
 from pathlib import Path
@@ -591,7 +590,14 @@ async def get_pdf_page(material_id: int, page_num: int):
             else:
                 # --- CASE 2: Get from Local folder ---
                 # storage_path is "data_pdfs/my_book.pdf"
-                pdf_path = PDF_BASE_DIR / storage_path
+                pdf_path = (PDF_BASE_DIR / storage_path).resolve()
+                base_dir_resolved = PDF_BASE_DIR.resolve()
+
+                # SECURITY: Prevent path traversal
+                try:
+                    pdf_path.relative_to(base_dir_resolved)
+                except ValueError:
+                    raise HTTPException(status_code=403, detail="Invalid file path")
 
                 if not pdf_path.exists():
                     print(f"File not found on disk: {pdf_path}")
