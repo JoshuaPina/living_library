@@ -591,7 +591,15 @@ async def get_pdf_page(material_id: int, page_num: int):
             else:
                 # --- CASE 2: Get from Local folder ---
                 # storage_path is "data_pdfs/my_book.pdf"
-                pdf_path = PDF_BASE_DIR / storage_path
+                pdf_path = (PDF_BASE_DIR / storage_path).resolve()
+
+                # SECURITY: Prevent path traversal
+                try:
+                    pdf_path.relative_to(PDF_BASE_DIR.resolve())
+                except ValueError:
+                    raise HTTPException(
+                        status_code=403, detail="Invalid file path"
+                    )
 
                 if not pdf_path.exists():
                     print(f"File not found on disk: {pdf_path}")
