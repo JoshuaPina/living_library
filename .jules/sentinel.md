@@ -12,3 +12,8 @@
 **Vulnerability:** The FastAPI application was catching generic exceptions (`except Exception as e:`) and directly returning the raw exception string (`str(e)`) or details like file paths directly to the client via HTTP 500 responses.
 **Learning:** Returning raw exception details (`str(e)`) leaks sensitive internal server information, such as database schema details, file system paths, or downstream service URLs. This can be used by an attacker to map out the system architecture and identify further vulnerabilities.
 **Prevention:** Catch exceptions and log the detailed error with stack traces on the server side using the `logging` module (`logger.error("Message", exc_info=e)`). Then, return a generic, safe error message (e.g., "Internal server error") to the client.
+
+## 2024-05-30 - [Path Traversal in PDF file handling]
+**Vulnerability:** The application was directly concatenating user-controlled storage paths with a base directory (`PDF_BASE_DIR / storage_path`) without checking if the resulting path was actually within the allowed directory, leading to a path traversal vulnerability.
+**Learning:** Directly appending unsanitized relative paths to a base path allows an attacker to access files outside the intended directory by using `../` sequences in the `storage_path` database entry or input.
+**Prevention:** Use `pathlib.Path.resolve()` to normalize the path and `relative_to(base_dir.resolve())` to strictly verify that the resolved path is a subpath of the intended base directory.

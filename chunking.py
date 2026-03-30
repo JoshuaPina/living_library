@@ -182,7 +182,15 @@ async def main():
         total_chunks = 0
         for idx, (material_id, storage_path) in enumerate(materials, 1):
             print(f"[{idx}/{len(materials)}] Material ID: {material_id}")
-            file_path = PDF_BASE_DIR / storage_path
+
+            # SECURITY: Prevent path traversal attacks
+            try:
+                file_path = (PDF_BASE_DIR / storage_path).resolve()
+                file_path.relative_to(PDF_BASE_DIR.resolve())
+            except ValueError:
+                print(f"❌ Security Error: Invalid path detected for {storage_path}")
+                continue
+
             chunks = await process_pdf(conn, material_id, file_path)
             total_chunks += chunks
             print()
