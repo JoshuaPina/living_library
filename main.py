@@ -593,6 +593,16 @@ async def get_pdf_page(material_id: int, page_num: int):
                 # storage_path is "data_pdfs/my_book.pdf"
                 pdf_path = PDF_BASE_DIR / storage_path
 
+                # SECURITY: Prevent path traversal by ensuring the resolved path
+                # is strictly inside the resolved PDF_BASE_DIR.
+                try:
+                    pdf_path.resolve().relative_to(PDF_BASE_DIR.resolve())
+                except ValueError:
+                    logger.warning(f"Path traversal attempt detected: {storage_path}")
+                    raise HTTPException(
+                        status_code=400, detail="Invalid file path"
+                    )
+
                 if not pdf_path.exists():
                     print(f"File not found on disk: {pdf_path}")
                     raise HTTPException(
