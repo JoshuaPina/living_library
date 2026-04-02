@@ -593,13 +593,20 @@ async def get_pdf_page(material_id: int, page_num: int):
                 # storage_path is "data_pdfs/my_book.pdf"
                 pdf_path = PDF_BASE_DIR / storage_path
 
-                if not pdf_path.exists():
-                    print(f"File not found on disk: {pdf_path}")
+                # Sentinel: Prevent path traversal vulnerabilities
+                resolved_pdf_path = pdf_path.resolve()
+                resolved_base_dir = PDF_BASE_DIR.resolve()
+                if not resolved_pdf_path.is_relative_to(resolved_base_dir):
+                    logger.error(f"Security: Path traversal attempt blocked: {pdf_path}")
+                    raise HTTPException(status_code=403, detail="Forbidden")
+
+                if not resolved_pdf_path.exists():
+                    print(f"File not found on disk: {resolved_pdf_path}")
                     raise HTTPException(
                         status_code=404, detail="PDF file not found on disk"
                     )
 
-                doc = fitz.open(pdf_path)
+                doc = fitz.open(resolved_pdf_path)
 
             # --- END HYBRID LOGIC ---
 
