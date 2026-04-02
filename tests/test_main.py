@@ -8,6 +8,12 @@ os.environ["DATABASE_URL"] = "postgresql+asyncpg://test:test@localhost:5432/test
 from fastapi.testclient import TestClient
 from main import app
 
+@pytest.fixture(autouse=True)
+def mock_ensure_schema():
+    with patch("main.ensure_schema_with_session", new_callable=AsyncMock) as mock:
+        yield mock
+
+
 # We mock sentence transformers to avoid downloading models and loading them in tests
 @pytest.fixture(autouse=True)
 def mock_sentence_transformer():
