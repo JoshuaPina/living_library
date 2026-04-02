@@ -25,6 +25,13 @@ assets/data_pdfs/
 # IDE
 .vscode/
 .idea/
+
+# Coverage
+.coverage
+htmlcov/
+pytest_cache/
+.pytest_cache/
 *.swp
 *.swo
 .venv/
+venv/

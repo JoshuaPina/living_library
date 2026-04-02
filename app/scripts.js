@@ -1,3 +1,14 @@
+// --- Security Enhancement: XSS Sanitization ---
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 function openBook(material_id) {
     console.log("Opening book viewer for material ID:", material_id);
     
@@ -75,23 +86,23 @@ function createBookCard(material) {
     
     div.innerHTML = `
         <div class="book-cover">
-            <div class="book-spine" style="background: ${getTopicColor(firstTopic)}">
-                <h3>${material.title}</h3>
+            <div class="book-spine" style="background: ${escapeHTML(getTopicColor(firstTopic))}">
+                <h3>${escapeHTML(material.title)}</h3>
             </div>
         </div>
         
         <div class="book-info">
-            <h4>${material.title}</h4>
-            <p class="author">${material.authors || 'Unknown'}</p>
-            <p class="topic">${material.topics || 'Uncategorized'}</p>
+            <h4>${escapeHTML(material.title)}</h4>
+            <p class="author">${escapeHTML(material.authors) || 'Unknown'}</p>
+            <p class="topic">${escapeHTML(material.topics) || 'Uncategorized'}</p>
             
             <div class="book-meta">
-                <span class="year">${material.year || 'N/A'}</span>
-                <span class="pages">${material.pages || '?'} pages</span>
+                <span class="year">${escapeHTML(material.year) || 'N/A'}</span>
+                <span class="pages">${escapeHTML(material.pages) || '?'} pages</span>
             </div>
             
             ${isAccessible 
-                ? `<button onclick="openBook(${material.material_id})" class="btn-primary">
+                ? `<button onclick="openBook(${escapeHTML(material.material_id)})" class="btn-primary">
                       📖 Read Now
                   </button>`
                 : `<span class="badge local-only">
