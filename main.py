@@ -9,30 +9,31 @@ The application uses FastAPI for the web framework, SQLAlchemy for asynchronous 
 operations, and Supabase for authentication and storage in some contexts.
 """
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional, List
+from typing import Optional
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import os
 import logging
-
-logger = logging.getLogger(__name__)
 from dotenv import load_dotenv
 from supabase import Client, create_client
-import io
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool
-from sqlalchemy import text, select
+from sqlalchemy import text
 from sentence_transformers import SentenceTransformer
 import fitz  # PyMuPDF
 from pathlib import Path
-import logging
-
 from db_bootstrap import ensure_schema_with_session
-from storage_backends import is_path_based_storage, resolve_storage_path
+from storage_backends import is_path_based_storage, resolve_storage_path, get_storage_root
+
+
+
+
+logger = logging.getLogger(__name__)
+
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -112,7 +113,6 @@ async def lifespan(app: FastAPI):
     global embedding_model
 
     # Startup
-<<<<<<< HEAD
     logger.info("Ensuring database schema is available")
     async with async_session() as session:
         async with session.begin():
@@ -122,13 +122,6 @@ async def lifespan(app: FastAPI):
     logger.info("Loading embedding model")
     embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
     logger.info("Embedding model loaded")
-    
-=======
-    print("🚀 Loading embedding model...")
-    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-    print("✓ Embedding model loaded")
-
->>>>>>> 187decb2ffad465faa485e9221e3a9d93f89fe0f
     yield
 
     # Shutdown
@@ -266,7 +259,7 @@ async def health_check():
     """
     async with async_session() as session:
         try:
-            result = await session.execute(text("SELECT 1"))
+            await session.execute(text("SELECT 1"))
             return {"status": "healthy", "database": "connected"}
         except Exception as e:
             logger.error("Health check failed", exc_info=e)
@@ -608,62 +601,36 @@ async def get_pdf_page(material_id: int, page_num: int):
                         storage_path
                     )
                     doc = fitz.open(stream=file_bytes, filetype="pdf")
-<<<<<<< HEAD
-               
-                except Exception as e:
+                except Exception:
                     logger.exception(
                         "Supabase download failed for material_id=%s bucket=%s path=%s",
                         material_id,
                         storage_bucket,
                         storage_path,
                     )
-                    raise HTTPException(status_code=500, detail=f"Failed to download from Supabase: {storage_bucket}/{storage_path}")
+                    raise HTTPException(status_code=500, detail="Internal server error")
 
             elif is_path_based_storage(storage_provider):
                 # --- CASE 2: Get from Local folder ---
                 # storage_path is a relative path inside the configured root.
                 pdf_path = resolve_storage_path(storage_provider, storage_path, PDF_BASE_DIR)
                
-                if not pdf_path.exists():
+                # Sentinel: Prevent path traversal vulnerabilities
+                resolved_pdf_path = pdf_path.resolve()
+                resolved_base_dir = get_storage_root(storage_provider, PDF_BASE_DIR).resolve()
+                if not resolved_pdf_path.is_relative_to(resolved_base_dir):
+                    logger.error("Security: Path traversal attempt blocked: %s", pdf_path)
+                    raise HTTPException(status_code=403, detail="Forbidden")
+
+                if not resolved_pdf_path.exists():
                     logger.error(
                         "Local PDF not found for material_id=%s path=%s",
                         material_id,
                         pdf_path,
                     )
                     raise HTTPException(status_code=404, detail="PDF file not found on disk")
-               
-                doc = fitz.open(pdf_path)
-           
-=======
-
-                except Exception as e:
-                    logger.error(
-                        f"Error downloading from Supabase: {storage_bucket}/{storage_path}",
-                        exc_info=e,
-                    )
-                    raise HTTPException(status_code=500, detail="Internal server error")
-
-            else:
-                # --- CASE 2: Get from Local folder ---
-                # storage_path is "data_pdfs/my_book.pdf"
-                pdf_path = PDF_BASE_DIR / storage_path
-
-                # Sentinel: Prevent path traversal vulnerabilities
-                resolved_pdf_path = pdf_path.resolve()
-                resolved_base_dir = PDF_BASE_DIR.resolve()
-                if not resolved_pdf_path.is_relative_to(resolved_base_dir):
-                    logger.error(f"Security: Path traversal attempt blocked: {pdf_path}")
-                    raise HTTPException(status_code=403, detail="Forbidden")
-
-                if not resolved_pdf_path.exists():
-                    print(f"File not found on disk: {resolved_pdf_path}")
-                    raise HTTPException(
-                        status_code=404, detail="PDF file not found on disk"
-                    )
 
                 doc = fitz.open(resolved_pdf_path)
-
->>>>>>> 187decb2ffad465faa485e9221e3a9d93f89fe0f
             # --- END HYBRID LOGIC ---
 
             if not doc:
@@ -689,17 +656,11 @@ async def get_pdf_page(material_id: int, page_num: int):
             if doc:
                 doc.close()
             raise
-        except Exception as e:
-<<<<<<< HEAD
-            if doc: doc.close()
-            logger.exception("Unexpected error in get_pdf_page for material_id=%s page=%s", material_id, page_num)
-            raise HTTPException(status_code=500, detail=str(e))
-=======
+        except Exception:
             if doc:
                 doc.close()
-            logger.error("Unexpected error in get_pdf_page", exc_info=e)
+            logger.exception("Unexpected error in get_pdf_page for material_id=%s page=%s", material_id, page_num)
             raise HTTPException(status_code=500, detail="Internal server error")
->>>>>>> 187decb2ffad465faa485e9221e3a9d93f89fe0f
 
 
 @app.get("/api/material/{material_id}/info")
@@ -768,11 +729,7 @@ async def get_material_info(material_id: int):
         else:  # 'local', 'onedrive', or 'google_drive'
             return {
                 "title": title,
-<<<<<<< HEAD
                 "type": storage_provider if storage_provider in {"onedrive", "google_drive"} else "local",
-=======
-                "type": "local",
->>>>>>> 187decb2ffad465faa485e9221e3a9d93f89fe0f
                 # We will use the page-by-page API for local files
             }
 
