@@ -32,7 +32,7 @@ from pathlib import Path
 import logging
 
 from db_bootstrap import ensure_schema_with_session
-from storage_backends import is_path_based_storage, resolve_storage_path
+from storage_backends import is_path_based_storage, resolve_storage_path, get_storage_root
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -112,7 +112,6 @@ async def lifespan(app: FastAPI):
     global embedding_model
 
     # Startup
-<<<<<<< HEAD
     logger.info("Ensuring database schema is available")
     async with async_session() as session:
         async with session.begin():
@@ -123,12 +122,6 @@ async def lifespan(app: FastAPI):
     embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
     logger.info("Embedding model loaded")
     
-=======
-    print("🚀 Loading embedding model...")
-    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-    print("✓ Embedding model loaded")
-
->>>>>>> 187decb2ffad465faa485e9221e3a9d93f89fe0f
     yield
 
     # Shutdown
@@ -608,8 +601,6 @@ async def get_pdf_page(material_id: int, page_num: int):
                         storage_path
                     )
                     doc = fitz.open(stream=file_bytes, filetype="pdf")
-<<<<<<< HEAD
-               
                 except Exception as e:
                     logger.exception(
                         "Supabase download failed for material_id=%s bucket=%s path=%s",
@@ -617,53 +608,29 @@ async def get_pdf_page(material_id: int, page_num: int):
                         storage_bucket,
                         storage_path,
                     )
-                    raise HTTPException(status_code=500, detail=f"Failed to download from Supabase: {storage_bucket}/{storage_path}")
+                    raise HTTPException(status_code=500, detail="Internal server error")
 
             elif is_path_based_storage(storage_provider):
                 # --- CASE 2: Get from Local folder ---
                 # storage_path is a relative path inside the configured root.
                 pdf_path = resolve_storage_path(storage_provider, storage_path, PDF_BASE_DIR)
-               
-                if not pdf_path.exists():
-                    logger.error(
-                        "Local PDF not found for material_id=%s path=%s",
-                        material_id,
-                        pdf_path,
-                    )
-                    raise HTTPException(status_code=404, detail="PDF file not found on disk")
-               
-                doc = fitz.open(pdf_path)
-           
-=======
-
-                except Exception as e:
-                    logger.error(
-                        f"Error downloading from Supabase: {storage_bucket}/{storage_path}",
-                        exc_info=e,
-                    )
-                    raise HTTPException(status_code=500, detail="Internal server error")
-
-            else:
-                # --- CASE 2: Get from Local folder ---
-                # storage_path is "data_pdfs/my_book.pdf"
-                pdf_path = PDF_BASE_DIR / storage_path
 
                 # Sentinel: Prevent path traversal vulnerabilities
                 resolved_pdf_path = pdf_path.resolve()
-                resolved_base_dir = PDF_BASE_DIR.resolve()
+                resolved_base_dir = get_storage_root(storage_provider, PDF_BASE_DIR).resolve()
                 if not resolved_pdf_path.is_relative_to(resolved_base_dir):
-                    logger.error(f"Security: Path traversal attempt blocked: {pdf_path}")
+                    logger.error("Security: Path traversal attempt blocked: %s", pdf_path)
                     raise HTTPException(status_code=403, detail="Forbidden")
 
                 if not resolved_pdf_path.exists():
-                    print(f"File not found on disk: {resolved_pdf_path}")
-                    raise HTTPException(
-                        status_code=404, detail="PDF file not found on disk"
+                    logger.error(
+                        "Local PDF not found for material_id=%s path=%s",
+                        material_id,
+                        resolved_pdf_path,
                     )
+                    raise HTTPException(status_code=404, detail="PDF file not found on disk")
 
                 doc = fitz.open(resolved_pdf_path)
-
->>>>>>> 187decb2ffad465faa485e9221e3a9d93f89fe0f
             # --- END HYBRID LOGIC ---
 
             if not doc:
@@ -690,16 +657,9 @@ async def get_pdf_page(material_id: int, page_num: int):
                 doc.close()
             raise
         except Exception as e:
-<<<<<<< HEAD
             if doc: doc.close()
             logger.exception("Unexpected error in get_pdf_page for material_id=%s page=%s", material_id, page_num)
-            raise HTTPException(status_code=500, detail=str(e))
-=======
-            if doc:
-                doc.close()
-            logger.error("Unexpected error in get_pdf_page", exc_info=e)
             raise HTTPException(status_code=500, detail="Internal server error")
->>>>>>> 187decb2ffad465faa485e9221e3a9d93f89fe0f
 
 
 @app.get("/api/material/{material_id}/info")
@@ -768,11 +728,7 @@ async def get_material_info(material_id: int):
         else:  # 'local', 'onedrive', or 'google_drive'
             return {
                 "title": title,
-<<<<<<< HEAD
                 "type": storage_provider if storage_provider in {"onedrive", "google_drive"} else "local",
-=======
-                "type": "local",
->>>>>>> 187decb2ffad465faa485e9221e3a9d93f89fe0f
                 # We will use the page-by-page API for local files
             }
 
