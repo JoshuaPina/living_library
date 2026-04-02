@@ -71,7 +71,7 @@
         // --- Main Function ---
         async function loadMaterial() {
             if (!materialId) {
-                document.body.innerHTML = "<h1>Error: No Material ID provided.</h1>";
+                document.body.textContent = "Error: No Material ID provided.";
                 return;
             }
 
@@ -98,7 +98,7 @@
 
             } catch (error) {
                 console.error('Error loading material:', error);
-                document.body.innerHTML = `<h1>Error loading material.</h1><p>${error.message}</p>`;
+                document.body.textContent = `Error loading material: ${error.message}`;
             }
         }
 
