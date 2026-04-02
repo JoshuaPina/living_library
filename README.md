@@ -44,6 +44,10 @@ Before you begin, ensure you have the following installed:
 The API bootstraps its required PostgreSQL schema on startup, so a fresh database
 only needs the connection string and pgvector access.
 
+For file storage, the app now treats `local`, `onedrive`, and `google_drive`
+as filesystem-backed providers. Point `PDF_BASE_DIR`, `ONEDRIVE_BASE_DIR`, or
+`GOOGLE_DRIVE_BASE_DIR` at the synced folder you want the app to read.
+
 3.  **Install dependencies**:
     ```bash
     pip install -r requirements.txt
@@ -94,6 +98,9 @@ Use the `python/vector_pipeline.py` helper to create text chunks from a PDF and
 store their embeddings in PostgreSQL (using the `vector` type). The script
 automatically creates the required schema, the `vector` extension when needed,
 and registers the type for async connections.
+
+If your PDFs are stored in a synced Google Drive or OneDrive folder, set the
+matching base-dir environment variable before ingesting or viewing files.
 
 ```bash
 # file_id corresponds to file_asset.file_id for the PDF

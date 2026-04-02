@@ -8,21 +8,30 @@ import sys
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+__test__ = False
 
-if not DATABASE_URL:
-    print(
-        "ERROR: DATABASE_URL is not set. Copy .env.example to .env and set DATABASE_URL before running test_search.py."
-    )
-    sys.exit(1)
 
-if DATABASE_URL.startswith("postgresql+asyncpg://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
+def get_database_url() -> str:
+    database_url = os.getenv("DATABASE_URL")
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+    if not database_url:
+        raise RuntimeError(
+            "DATABASE_URL is not set. Copy .env.example to .env and set DATABASE_URL before running test_search.py."
+        )
+
+    if database_url.startswith("postgresql+asyncpg://"):
+        database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
+
+    return database_url
+
+
+def load_model() -> SentenceTransformer:
+    return SentenceTransformer('all-MiniLM-L6-v2')
 
 async def test(query: str, limit: int):
-    conn = await asyncpg.connect(DATABASE_URL)
+    conn = await asyncpg.connect(get_database_url())
+
+    model = load_model()
 
     embedding = model.encode(query).tolist()
     embedding_str = '[' + ','.join(map(str, embedding)) + ']'
@@ -58,7 +67,11 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=5, help="Number of results to return")
     args = parser.parse_args()
 
-    asyncio.run(test(args.query, args.limit))
+    try:
+        asyncio.run(test(args.query, args.limit))
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

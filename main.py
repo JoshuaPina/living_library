@@ -28,6 +28,7 @@ from pathlib import Path
 import logging
 
 from db_bootstrap import ensure_schema_with_session
+from storage_backends import is_path_based_storage, resolve_storage_path
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -62,7 +63,11 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     logger.warning("SUPABASE_URL or SUPABASE_KEY not set in environment variables")
     supabase_client: Optional[Client] = None
 else:
-    supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    try:
+        supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception as exc:
+        logger.warning("Supabase client disabled because credentials are invalid: %s", exc)
+        supabase_client = None
 
 # Global embedding model (loaded once at startup)
 embedding_model = None
@@ -575,10 +580,10 @@ async def get_pdf_page(material_id: int, page_num: int):
                     )
                     raise HTTPException(status_code=500, detail=f"Failed to download from Supabase: {storage_bucket}/{storage_path}")
 
-            else:  
+            elif is_path_based_storage(storage_provider):
                 # --- CASE 2: Get from Local folder ---
-                # storage_path is "data_pdfs/my_book.pdf"
-                pdf_path = PDF_BASE_DIR / storage_path
+                # storage_path is a relative path inside the configured root.
+                pdf_path = resolve_storage_path(storage_provider, storage_path, PDF_BASE_DIR)
                
                 if not pdf_path.exists():
                     logger.error(
@@ -678,10 +683,10 @@ async def get_material_info(material_id: int):
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"Could not get Supabase URL: {e}")
 
-        else:  # 'local' or other
+        else:  # 'local', 'onedrive', or 'google_drive'
             return {
                 "title": title,
-                "type": "local"
+                "type": storage_provider if storage_provider in {"onedrive", "google_drive"} else "local",
                 # We will use the page-by-page API for local files
             }
 

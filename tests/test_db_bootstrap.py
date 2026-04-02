@@ -47,7 +47,11 @@ def test_bootstrap_connection_emits_expected_statements() -> None:
 
 
 async def _bootstrap_on_database(database_url: str) -> None:
-    connection = await asyncpg.connect(database_url)
+    try:
+        connection = await asyncpg.connect(database_url)
+    except OSError as exc:
+        pytest.skip(f"DATABASE_URL is not reachable: {exc}")
+
     try:
         await ensure_schema_with_connection(connection)
 

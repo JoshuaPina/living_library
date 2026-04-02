@@ -17,6 +17,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from db_bootstrap import ensure_schema_with_connection
+from storage_backends import resolve_storage_path
 
 load_dotenv()
 
@@ -154,17 +155,17 @@ async def insert_batch(conn, batch_chunks):
 async def get_materials_to_process(conn):
     """Get list of materials that need processing."""
     rows = await conn.fetch("""
-        SELECT DISTINCT m.material_id, fa.storage_path, fa.storage_provider
+                SELECT DISTINCT m.material_id, fa.storage_path, fa.storage_provider
         FROM material m
         JOIN file_asset fa ON fa.material_id = m.material_id
         WHERE fa.is_primary = TRUE
-          AND fa.storage_provider IN ('onedrive', 'local')
+          AND fa.storage_provider IN ('onedrive', 'local', 'google_drive')
           AND NOT EXISTS (
               SELECT 1 FROM text_chunk tc WHERE tc.file_id = fa.file_id
           )
         ORDER BY m.material_id
     """)
-    return [(row['material_id'], row['storage_path']) for row in rows]
+    return [(row['material_id'], row['storage_path'], row['storage_provider']) for row in rows]
 
 
 async def main():
@@ -189,9 +190,9 @@ async def main():
         print(f"Found {len(materials)} materials to process\n")
         
         total_chunks = 0
-        for idx, (material_id, storage_path) in enumerate(materials, 1):
+        for idx, (material_id, storage_path, storage_provider) in enumerate(materials, 1):
             print(f"[{idx}/{len(materials)}] Material ID: {material_id}")
-            file_path = PDF_BASE_DIR / storage_path
+            file_path = resolve_storage_path(storage_provider, storage_path, PDF_BASE_DIR)
             chunks = await process_pdf(conn, material_id, file_path)
             total_chunks += chunks
             print()

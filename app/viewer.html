@@ -89,7 +89,7 @@
                     supabaseViewer.classList.remove('hidden');
                     iframeElement.src = info.url;
 
-                } else if (info.type === 'local') {
+                } else if (['local', 'onedrive', 'google_drive'].includes(info.type)) {
                     // Use local page-by-page viewer
                     localViewer.classList.remove('hidden');
                     supabaseViewer.classList.add('hidden'); // Hide the iframe
