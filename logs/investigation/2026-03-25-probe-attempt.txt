@@ -1,0 +1,21 @@
+Living Library Investigation - 2026-03-25 Live Probe Attempt
+
+Attempted live probe sequence:
+1. Launched: /workspaces/living_library/.venv/bin/python main.py
+2. Waited 3 seconds
+3. Ran: python/smoke_api.py
+   Result: All endpoints returned "All connection attempts failed"
+4. Inspected background terminal output
+   Result: API startup failed with RuntimeError
+
+Captured startup error:
+RuntimeError: DATABASE_URL environment variable is not set. The API cannot start
+ without it. Copy .env.example to .env and set DATABASE_URL, then restart the server.
+
+Root cause:
+- .env file does not exist in project root
+- DATABASE_URL environment variable is not set in shell
+- API startup explicitly requires DATABASE_URL and halts if missing
+
+Conclusion:
+Probe sequence cannot proceed until runtime environment is configured.

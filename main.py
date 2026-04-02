@@ -25,11 +25,20 @@ from sqlalchemy import text, select
 from sentence_transformers import SentenceTransformer
 import fitz  # PyMuPDF
 from pathlib import Path
+import logging
+
+from db_bootstrap import ensure_schema_with_session
 
 BASE_DIR = Path(__file__).resolve().parent
 
 # Load environment variables
 load_dotenv()
+
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s"
+)
+logger = logging.getLogger("living_library")
 
 # Configuration
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -41,7 +50,8 @@ elif DATABASE_URL and DATABASE_URL.startswith("postgresql+psycopg2://"):
 
 if not DATABASE_URL:
     raise RuntimeError(
-        "DATABASE_URL environment variable is not set. The API cannot start without it."
+        "DATABASE_URL environment variable is not set. The API cannot start without it. "
+        "Copy .env.example to .env and set DATABASE_URL, then restart the server."
     )
 
 PDF_BASE_DIR = Path(os.getenv("PDF_BASE_DIR", BASE_DIR / "pdfs"))
@@ -49,7 +59,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("Warning: SUPABASE_URL or SUPABASE_KEY not set in environment variables.")
+    logger.warning("SUPABASE_URL or SUPABASE_KEY not set in environment variables")
     supabase_client: Optional[Client] = None
 else:
     supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -94,14 +104,20 @@ async def lifespan(app: FastAPI):
     global embedding_model
     
     # Startup
-    print("🚀 Loading embedding model...")
+    logger.info("Ensuring database schema is available")
+    async with async_session() as session:
+        async with session.begin():
+            await ensure_schema_with_session(session)
+    logger.info("Database schema ready")
+
+    logger.info("Loading embedding model")
     embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-    print("✓ Embedding model loaded")
+    logger.info("Embedding model loaded")
     
     yield
     
     # Shutdown
-    print("👋 Shutting down...")
+    logger.info("Shutting down API and disposing database engine")
     await engine.dispose()
 
 
@@ -551,7 +567,12 @@ async def get_pdf_page(material_id: int, page_num: int):
                     doc = fitz.open(stream=file_bytes, filetype="pdf")
                
                 except Exception as e:
-                    print(f"Error downloading from Supabase: {e}")
+                    logger.exception(
+                        "Supabase download failed for material_id=%s bucket=%s path=%s",
+                        material_id,
+                        storage_bucket,
+                        storage_path,
+                    )
                     raise HTTPException(status_code=500, detail=f"Failed to download from Supabase: {storage_bucket}/{storage_path}")
 
             else:  
@@ -560,7 +581,11 @@ async def get_pdf_page(material_id: int, page_num: int):
                 pdf_path = PDF_BASE_DIR / storage_path
                
                 if not pdf_path.exists():
-                    print(f"File not found on disk: {pdf_path}")
+                    logger.error(
+                        "Local PDF not found for material_id=%s path=%s",
+                        material_id,
+                        pdf_path,
+                    )
                     raise HTTPException(status_code=404, detail="PDF file not found on disk")
                
                 doc = fitz.open(pdf_path)
@@ -587,7 +612,7 @@ async def get_pdf_page(material_id: int, page_num: int):
             raise
         except Exception as e:
             if doc: doc.close()
-            print(f"Unexpected error in get_pdf_page: {e}")
+            logger.exception("Unexpected error in get_pdf_page for material_id=%s page=%s", material_id, page_num)
             raise HTTPException(status_code=500, detail=str(e))
 
 

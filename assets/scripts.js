@@ -480,6 +480,7 @@ canvas.addEventListener('mousedown', (e) => {
         // --- Add this new function ---
 async function loadDynamicSidebar() {
     try {
+        console.info('[LivingLibrary] Loading sidebar topics and materials...');
         const fetchJson = async (url, label) => {
             const response = await fetch(url);
             const rawBody = await response.text();
@@ -503,6 +504,10 @@ async function loadDynamicSidebar() {
 
         // Get all unique topics
         const dataTopics = await fetchJson('/api/library/topics', 'Topics');
+        console.info('[LivingLibrary] Sidebar loaded', {
+            topics: dataTopics.topics?.length || 0,
+            materials: materials?.length || 0,
+        });
 
         const listContainer = document.getElementById('dynamic-browse-list');
         listContainer.innerHTML = ''; // Clear "Loading..."
@@ -582,6 +587,8 @@ searchForm.addEventListener('submit', async (e) => {
     const query = searchInput.value;
     if (!query) return;
 
+    console.info('[LivingLibrary] Semantic search submitted', { query, limit: 5 });
+
     searchResults.innerHTML = '<p>Searching...</p>';
 
     try {
@@ -595,7 +602,8 @@ searchForm.addEventListener('submit', async (e) => {
         });
 
         if (!response.ok) {
-            throw new Error('Search request failed.');
+            const failureText = await response.text();
+            throw new Error(`Search request failed (${response.status}): ${failureText.slice(0, 200)}`);
         }
 
         const data = await response.json();
@@ -629,7 +637,7 @@ searchForm.addEventListener('submit', async (e) => {
         });
 
     } catch (error) {
-        console.error('Search error:', error);
+        console.error('[LivingLibrary] Search error:', error);
         searchResults.innerHTML = '<p>Error during search. Please try again.</p>';
     }
 });
@@ -693,6 +701,9 @@ async function openTopicSelector() {
 
     try {
         const resTopics = await fetch('/api/library/topics');
+        if (!resTopics.ok) {
+            throw new Error(`Topic load failed (${resTopics.status} ${resTopics.statusText})`);
+        }
         const dataTopics = await resTopics.json();
         topicGrid.innerHTML = ''; // Clear "Loading..."
 
@@ -707,6 +718,7 @@ async function openTopicSelector() {
             topicGrid.appendChild(topicCard);
         });
     } catch (error) {
+        console.error('[LivingLibrary] Topic modal load failed:', error);
         topicGrid.innerHTML = 'Error loading topics.';
     }
 }

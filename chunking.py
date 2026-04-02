@@ -4,12 +4,19 @@ Working PDF processing script that avoids SQLAlchemy parameter binding issues.
 
 import asyncio
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 import asyncpg  # Use asyncpg directly instead of SQLAlchemy
 from sentence_transformers import SentenceTransformer
 import fitz
 from typing import List
+
+ROOT_DIR = Path(__file__).resolve().parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from db_bootstrap import ensure_schema_with_connection
 
 load_dotenv()
 
@@ -170,6 +177,8 @@ async def main():
     conn = await asyncpg.connect(DATABASE_URL)
     
     try:
+        await ensure_schema_with_connection(conn)
+
         # Get materials to process
         materials = await get_materials_to_process(conn)
         

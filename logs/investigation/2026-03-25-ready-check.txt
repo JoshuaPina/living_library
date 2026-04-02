@@ -1,0 +1,18 @@
+Living Library Investigation Ready Check - 2026-03-25
+
+User indicated readiness for next probe cycle.
+
+Observed runtime state in active probe terminal:
+- .env present check: .env missing
+- DATABASE_URL check: unset in shell
+- SUPABASE_URL/SUPABASE_KEY check: missing in shell
+
+Result:
+- API startup and endpoint smoke probes remain blocked in this terminal context.
+- No new runtime endpoint evidence could be collected.
+
+Recommended immediate unblock:
+1. Create .env from .env.example
+2. Populate DATABASE_URL (required)
+3. Optionally populate Supabase credentials
+4. Re-run startup and smoke checks

@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+logs/
+.pytest_cache/
+pdfs/
+assets/pdfs/
+assets/data_pdfs/

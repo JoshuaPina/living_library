@@ -12,8 +12,13 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
+import sys
 from pathlib import Path
 from typing import Iterable, List
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 import fitz  # PyMuPDF
 from dotenv import load_dotenv
@@ -21,6 +26,8 @@ from pgvector.asyncpg import register_vector
 from sentence_transformers import SentenceTransformer
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from db_bootstrap import ensure_schema_with_session
 
 load_dotenv()
 
@@ -126,6 +133,7 @@ async def vectorize_pdf(
     doc = None
     try:
         async with session.begin():
+            await ensure_schema_with_session(session)
             await ensure_pgvector(session)
 
             doc = fitz.open(pdf_path)

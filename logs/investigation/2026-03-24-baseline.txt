@@ -1,0 +1,23 @@
+Living Library Investigation Baseline - 2026-03-24
+
+Environment checks:
+- .env present check: .env missing
+- Shell DATABASE_URL check: DATABASE_URL is unset in shell
+- Key dependency checks: fastapi, sentence-transformers, rich are installed in .venv
+
+Runtime checks:
+- Command: /workspaces/living_library/.venv/bin/python main.py
+- Result: startup crash
+- Error:
+  RuntimeError: DATABASE_URL environment variable is not set. The API cannot start without it.
+
+Implementation actions taken in this cycle:
+- Added bug/improvement/todo/learnings docs under docs/
+- Added Rich summary utility: python/investigation_console.py
+- Added .env.example template for bootstrap
+- Replaced print-based backend diagnostics in main.py with structured logging
+- Added frontend diagnostics in assets/scripts.js for sidebar/search/topic-modal fetch failures
+- Fixed browse stylesheet path in app/browse.html
+
+Current blocker:
+- No runtime DATABASE_URL configured in current workspace shell/.env, so endpoint smoke suite cannot proceed.

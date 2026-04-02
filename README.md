@@ -41,6 +41,9 @@ Before you begin, ensure you have the following installed:
     source venv/bin/activate  # On Windows: venv\Scripts\activate
     ```
 
+The API bootstraps its required PostgreSQL schema on startup, so a fresh database
+only needs the connection string and pgvector access.
+
 3.  **Install dependencies**:
     ```bash
     pip install -r requirements.txt
@@ -89,8 +92,8 @@ PDF_BASE_DIR=./pdfs
 
 Use the `python/vector_pipeline.py` helper to create text chunks from a PDF and
 store their embeddings in PostgreSQL (using the `vector` type). The script
-automatically creates the `vector` extension when needed and registers the type
-for async connections.
+automatically creates the required schema, the `vector` extension when needed,
+and registers the type for async connections.
 
 ```bash
 # file_id corresponds to file_asset.file_id for the PDF
