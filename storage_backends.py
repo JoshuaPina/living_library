@@ -34,4 +34,10 @@ def get_storage_root(storage_provider: str, default_root: Path) -> Path:
 def resolve_storage_path(storage_provider: str, storage_path: str, default_root: Path) -> Path:
     """Resolve a storage-relative path to an absolute filesystem path."""
 
-    return get_storage_root(storage_provider, default_root) / storage_path
+    base_dir = get_storage_root(storage_provider, default_root).resolve()
+    constructed_path = (base_dir / storage_path).resolve()
+
+    if not constructed_path.is_relative_to(base_dir):
+        raise ValueError("Invalid storage path: path traversal detected.")
+
+    return constructed_path
