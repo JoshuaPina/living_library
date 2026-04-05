@@ -34,4 +34,14 @@ def get_storage_root(storage_provider: str, default_root: Path) -> Path:
 def resolve_storage_path(storage_provider: str, storage_path: str, default_root: Path) -> Path:
     """Resolve a storage-relative path to an absolute filesystem path."""
 
-    return get_storage_root(storage_provider, default_root) / storage_path
+    storage_root = get_storage_root(storage_provider, default_root)
+    resolved_root = storage_root.resolve()
+
+    # Strip leading slash to prevent it from acting as absolute root
+    clean_path = storage_path.lstrip("/")
+
+    resolved_path = (storage_root / clean_path).resolve()
+    if not resolved_path.is_relative_to(resolved_root):
+        raise ValueError(f"Path traversal attempt blocked: {storage_path}")
+
+    return resolved_path

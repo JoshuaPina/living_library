@@ -17,3 +17,8 @@
 **Vulnerability:** The FastAPI application directly appended user-controlled input (`storage_path` from the database) to a base directory path (`PDF_BASE_DIR`) without proper validation (`PDF_BASE_DIR / storage_path`), allowing path traversal (e.g., `../../../etc/passwd`).
 **Learning:** Even when path components come from a database rather than direct HTTP input, they should be treated as untrusted and validated to prevent unauthorized file system access. Using `pathlib.Path` concatenation (`/`) alone does not resolve or sanitize `../` sequences.
 **Prevention:** Always validate constructed paths before using them. Resolve both the base directory and the fully constructed path using `pathlib.Path.resolve()`, and then verify that the resolved path is a subpath of the base directory using `resolved_path.is_relative_to(base_dir.resolve())`.
+
+## 2024-05-31 - [Path Traversal in Path-Based Storage Providers]
+**Vulnerability:** The application handled paths for path-based storage providers (local, google_drive, onedrive) by just appending user input `storage_path` to the root path without stripping leading slashes or verifying the resolved path was within the base directory in `resolve_storage_path`.
+**Learning:** `pathlib` operator `/` acts differently if the right hand side starts with a slash `/`. It acts as an absolute root and ignores the left side entirely. Thus, `Path("/tmp/data") / "/etc/passwd"` evaluates to `/etc/passwd`.
+**Prevention:** Strip leading slashes using `.lstrip("/")` before appending paths with `pathlib`, and then always verify `is_relative_to` the resolved root base directory.
