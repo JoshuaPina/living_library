@@ -33,5 +33,17 @@ def get_storage_root(storage_provider: str, default_root: Path) -> Path:
 
 def resolve_storage_path(storage_provider: str, storage_path: str, default_root: Path) -> Path:
     """Resolve a storage-relative path to an absolute filesystem path."""
+    import logging
+    logger = logging.getLogger(__name__)
 
-    return get_storage_root(storage_provider, default_root) / storage_path
+    base_dir = get_storage_root(storage_provider, default_root)
+    constructed_path = base_dir / storage_path
+
+    resolved_constructed = constructed_path.resolve()
+    resolved_base = base_dir.resolve()
+
+    if not resolved_constructed.is_relative_to(resolved_base):
+        logger.error(f"Security: Path traversal attempt blocked: {storage_path}")
+        raise ValueError("Forbidden path")
+
+    return resolved_constructed
