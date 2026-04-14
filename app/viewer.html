@@ -69,6 +69,17 @@
         const iframeElement = document.getElementById('pdf-iframe');
 
         // --- Main Function ---
+        // Helper to safely escape HTML
+        function escapeHTML(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         async function loadMaterial() {
             if (!materialId) {
                 document.body.innerHTML = "<h1>Error: No Material ID provided.</h1>";
@@ -98,7 +109,7 @@
 
             } catch (error) {
                 console.error('Error loading material:', error);
-                document.body.innerHTML = `<h1>Error loading material.</h1><p>${error.message}</p>`;
+                document.body.innerHTML = `<h1>Error loading material.</h1><p>${escapeHTML(error.message)}</p>`;
             }
         }
 
