@@ -21,3 +21,8 @@
 **Vulnerability:** A path traversal vulnerability existed in `storage_backends.py` where a user-provided `storage_path` was concatenated with a base directory without validating if the resolved path was still within the intended base directory. This allowed a malicious user to potentially access arbitrary files on the system if `storage_path` contained sequences like `../`.
 **Learning:** During conflict resolution or refactoring, security checks (like the one originally present in `main.py`) can be accidentally lost. Moreover, relying solely on Python's `Path / path_string` concatenation does not protect against directory traversal if the string contains parent directory references (`..`).
 **Prevention:** Always use `pathlib.Path.resolve()` to resolve both the constructed path and the base directory, and then enforce the boundary using `constructed_path.is_relative_to(base_dir)`. This security check should be centralized in the utility function (`resolve_storage_path`) rather than scattered across endpoints.
+
+## 2024-06-01 - [DOM XSS via Unescaped Error Messages]
+**Vulnerability:** The frontend application in `app/viewer.html` and `assets/scripts.js` injected raw exception messages (`error.message`) directly into the DOM using `.innerHTML`.
+**Learning:** Error payloads from backend services (especially 422 Validation Errors) can reflect user input. Inserting them directly into the DOM via `.innerHTML` creates a reflected DOM-based Cross-Site Scripting (XSS) vulnerability.
+**Prevention:** Always use `.textContent` or `document.createTextNode` to insert dynamic, untrusted data (including error messages) into the DOM safely.
