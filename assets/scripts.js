@@ -1,4 +1,15 @@
 
+        // --- Security Enhancement: XSS Sanitization ---
+        function escapeHTML(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         
@@ -417,9 +428,9 @@ function updateNodeDetails(node) {
         
         detailsDiv.innerHTML = `
             <div class="node-info">
-                <div class="node-title">${node.label.replace(/\n/g, ' ')}</div>
+                <div class="node-title">${escapeHTML(node.label.replace(/\n/g, ' '))}</div>
                 <div style="margin-top: 8px; line-height: 1.5;">
-                    ${node.description}
+                    ${escapeHTML(node.description)}
                 </div>
                 <div style="margin-top: 10px; color: ${node.type === 'launch' ? '#00d4ff' : '#4a9eff'}; font-size: 11px;">
                     ${node.type === 'launch' ? '🚀' : '📚'} ${node.materials}
@@ -577,23 +588,13 @@ async function loadDynamicSidebar() {
     } catch (error) {
         console.error("Failed to load dynamic sidebar:", error);
         const errorMsg = error.message || "Unknown error";
-        document.getElementById('dynamic-browse-list').innerHTML = `<p>Error loading content: ${errorMsg}</p>`;
+        document.getElementById('dynamic-browse-list').innerHTML = `<p>Error loading content: ${escapeHTML(errorMsg)}</p>`;
     }
 }
 animate();
         
 loadDynamicSidebar(); // <-- Add this call
 
-// --- Security Enhancement: XSS Sanitization ---
-function escapeHTML(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
 
 // --- Semantic Search Functionality ---
 const searchForm = document.getElementById('search-form');
