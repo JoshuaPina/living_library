@@ -98,7 +98,15 @@
 
             } catch (error) {
                 console.error('Error loading material:', error);
-                document.body.innerHTML = `<h1>Error loading material.</h1><p>${error.message}</p>`;
+                const errorDiv = document.createElement('div');
+                const heading = document.createElement('h1');
+                heading.textContent = 'Error loading material.';
+                const paragraph = document.createElement('p');
+                paragraph.textContent = error.message;
+                errorDiv.appendChild(heading);
+                errorDiv.appendChild(paragraph);
+                document.body.innerHTML = '';
+                document.body.appendChild(errorDiv);
             }
         }
 
