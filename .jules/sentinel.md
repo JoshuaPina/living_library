@@ -13,6 +13,11 @@
 **Learning:** Returning raw exception details (`str(e)`) leaks sensitive internal server information, such as database schema details, file system paths, or downstream service URLs. This can be used by an attacker to map out the system architecture and identify further vulnerabilities.
 **Prevention:** Catch exceptions and log the detailed error with stack traces on the server side using the `logging` module (`logger.error("Message", exc_info=e)`). Then, return a generic, safe error message (e.g., "Internal server error") to the client.
 
+## 2024-05-30 - [Reflected DOM-based XSS via Error Messages]
+**Vulnerability:** The frontend application caught fetch errors (`error.message`) and directly rendered them into the DOM using `element.innerHTML = '...' + error.message`. Because FastAPI's default 422 Validation Error responses include the raw, unescaped user input that caused the validation failure, an attacker could supply malicious input (like `<img src=x onerror=alert(1)>`) via URL parameters that the frontend would fetch, error on, and immediately render as executing HTML.
+**Learning:** Even if the backend correctly returns a 400-level error, if the frontend blindly trusts the error message string and interpolates it into `innerHTML`, it creates a DOM-based XSS vulnerability. Backend validation errors often reflect malicious input back to the user.
+**Prevention:** Always use `element.textContent` when rendering dynamic text, including error messages, to ensure the browser treats it as text rather than executable HTML. If `innerHTML` must be used for layout, explicitly sanitize the dynamic variables using an HTML escaping function first.
+
 ## 2024-05-30 - [Path Traversal in PDF Download]
 **Vulnerability:** The FastAPI application directly appended user-controlled input (`storage_path` from the database) to a base directory path (`PDF_BASE_DIR`) without proper validation (`PDF_BASE_DIR / storage_path`), allowing path traversal (e.g., `../../../etc/passwd`).
 **Learning:** Even when path components come from a database rather than direct HTTP input, they should be treated as untrusted and validated to prevent unauthorized file system access. Using `pathlib.Path` concatenation (`/`) alone does not resolve or sanitize `../` sequences.
