@@ -577,7 +577,8 @@ async function loadDynamicSidebar() {
     } catch (error) {
         console.error("Failed to load dynamic sidebar:", error);
         const errorMsg = error.message || "Unknown error";
-        document.getElementById('dynamic-browse-list').innerHTML = `<p>Error loading content: ${errorMsg}</p>`;
+        document.getElementById('dynamic-browse-list').innerHTML = `<p>Error loading content: <span id="sidebar-error"></span></p>`;
+        document.getElementById('sidebar-error').textContent = errorMsg;
     }
 }
 animate();
