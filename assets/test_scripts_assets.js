@@ -557,7 +557,11 @@ async function loadDynamicSidebar() {
 
     } catch (error) {
         console.error("Failed to load dynamic sidebar:", error);
-        document.getElementById('dynamic-browse-list').innerHTML = '<p>Error loading content.</p>';
+        const container = document.getElementById('dynamic-browse-list');
+        container.innerHTML = '';
+        const p = document.createElement('p');
+        p.textContent = 'Error loading content.';
+        container.appendChild(p);
     }
 }
 animate();
@@ -622,7 +626,10 @@ searchForm.addEventListener('submit', async (e) => {
 
     } catch (error) {
         console.error('Search error:', error);
-        searchResults.innerHTML = '<p>Error during search. Please try again.</p>';
+        searchResults.innerHTML = '';
+        const p = document.createElement('p');
+        p.textContent = 'Error during search. Please try again.';
+        searchResults.appendChild(p);
     }
 });
 // --- End Semantic Search ---
@@ -699,7 +706,7 @@ async function openTopicSelector() {
             topicGrid.appendChild(topicCard);
         });
     } catch (error) {
-        topicGrid.innerHTML = 'Error loading topics.';
+        topicGrid.textContent = 'Error loading topics.';
     }
 }
 

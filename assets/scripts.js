@@ -577,7 +577,11 @@ async function loadDynamicSidebar() {
     } catch (error) {
         console.error("Failed to load dynamic sidebar:", error);
         const errorMsg = error.message || "Unknown error";
-        document.getElementById('dynamic-browse-list').innerHTML = `<p>Error loading content: ${errorMsg}</p>`;
+        const container = document.getElementById('dynamic-browse-list');
+        container.innerHTML = '';
+        const p = document.createElement('p');
+        p.textContent = `Error loading content: ${errorMsg}`;
+        container.appendChild(p);
     }
 }
 animate();
@@ -656,7 +660,10 @@ searchForm.addEventListener('submit', async (e) => {
 
     } catch (error) {
         console.error('[LivingLibrary] Search error:', error);
-        searchResults.innerHTML = '<p>Error during search. Please try again.</p>';
+        searchResults.innerHTML = '';
+        const p = document.createElement('p');
+        p.textContent = 'Error during search. Please try again.';
+        searchResults.appendChild(p);
     }
 });
 // --- End Semantic Search ---
@@ -737,7 +744,7 @@ async function openTopicSelector() {
         });
     } catch (error) {
         console.error('[LivingLibrary] Topic modal load failed:', error);
-        topicGrid.innerHTML = 'Error loading topics.';
+        topicGrid.textContent = 'Error loading topics.';
     }
 }
 
