@@ -26,3 +26,7 @@
 **Vulnerability:** The frontend code assigned `error.message` directly to `.innerHTML` when API requests failed. Since FastAPI's default 422 Unprocessable Entity responses for validation errors reflect the raw, unescaped user input in their JSON payload, injecting malicious scripts into the payload triggered a reflected DOM-based XSS when the frontend blindly rendered this error.
 **Learning:** FastAPI/Pydantic validation errors automatically reflect raw user input. If the frontend dynamically renders these backend error payloads directly into the DOM using methods like `.innerHTML`, it creates a reflected DOM-based XSS vulnerability.
 **Prevention:** Always explicitly sanitize backend error messages on the frontend, or preferably use safer DOM manipulation properties like `.textContent` or `document.createTextNode()` when updating the UI with potentially untrusted text (like API error messages).
+## 2024-05-24 - Overly Permissive CORS Config
+**Vulnerability:** The `CORSMiddleware` in `main.py` used wildcard (`*`) values for `allow_methods` and `allow_headers`, violating the principle of least privilege and increasing the risk of cross-origin attacks.
+**Learning:** Wildcard CORS configurations can inadvertently expose the API to unauthorized requests, especially when combined with `allow_credentials=True`.
+**Prevention:** Always restrict `allow_methods` and `allow_headers` to explicitly required values (e.g., `["GET", "POST"]`, `["Content-Type", "Authorization"]`) to minimize the attack surface.
