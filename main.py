@@ -9,11 +9,11 @@ The application uses FastAPI for the web framework, SQLAlchemy for asynchronous 
 operations, and Supabase for authentication and storage in some contexts.
 """
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional, List
+from typing import Optional
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import os
@@ -22,10 +22,9 @@ import logging
 logger = logging.getLogger(__name__)
 from dotenv import load_dotenv
 from supabase import Client, create_client
-import io
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool
-from sqlalchemy import text, select
+from sqlalchemy import text
 from sentence_transformers import SentenceTransformer
 import fitz  # PyMuPDF
 from pathlib import Path
@@ -152,8 +151,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
@@ -258,7 +257,7 @@ async def health_check():
     """
     async with async_session() as session:
         try:
-            result = await session.execute(text("SELECT 1"))
+            await session.execute(text("SELECT 1"))
             return {"status": "healthy", "database": "connected"}
         except Exception as e:
             logger.error("Health check failed", exc_info=e)
@@ -600,7 +599,7 @@ async def get_pdf_page(material_id: int, page_num: int):
                         storage_path
                     )
                     doc = fitz.open(stream=file_bytes, filetype="pdf")
-                except Exception as e:
+                except Exception:
                     logger.exception(
                         "Supabase download failed for material_id=%s bucket=%s path=%s",
                         material_id,
@@ -651,7 +650,7 @@ async def get_pdf_page(material_id: int, page_num: int):
             if doc:
                 doc.close()
             raise
-        except Exception as e:
+        except Exception:
             if doc: doc.close()
             logger.exception("Unexpected error in get_pdf_page for material_id=%s page=%s", material_id, page_num)
             raise HTTPException(status_code=500, detail="Internal server error")
