@@ -1,4 +1,15 @@
 
+        // --- Security Enhancement: XSS Sanitization ---
+        function escapeHTML(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         
@@ -410,19 +421,19 @@ function updateNodeDetails(node) {
             ? `<div style="margin-top: 10px;">
                  <strong style="color: #4a9eff;">Materials:</strong>
                  <ul style="margin: 8px 0 0 0; padding-left: 20px; line-height: 1.8;">
-                   ${materials.map(m => `<li style="color: #ccc;">${m}</li>`).join('')}
+                   ${materials.map(m => `<li style="color: #ccc;">${escapeHTML(m)}</li>`).join('')}
                  </ul>
                </div>`
             : '';
         
         detailsDiv.innerHTML = `
             <div class="node-info">
-                <div class="node-title">${node.label.replace(/\n/g, ' ')}</div>
+                <div class="node-title">${escapeHTML(node.label.replace(/\n/g, ' '))}</div>
                 <div style="margin-top: 8px; line-height: 1.5;">
-                    ${node.description}
+                    ${escapeHTML(node.description)}
                 </div>
                 <div style="margin-top: 10px; color: ${node.type === 'launch' ? '#00d4ff' : '#4a9eff'}; font-size: 11px;">
-                    ${node.type === 'launch' ? '🚀' : '📚'} ${node.materials}
+                    ${node.type === 'launch' ? '🚀' : '📚'} ${escapeHTML(node.materials)}
                 </div>
                 ${materialsHTML}
             </div>
@@ -587,17 +598,6 @@ async function loadDynamicSidebar() {
 animate();
         
 loadDynamicSidebar(); // <-- Add this call
-
-// --- Security Enhancement: XSS Sanitization ---
-function escapeHTML(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
 
 // --- Semantic Search Functionality ---
 const searchForm = document.getElementById('search-form');
