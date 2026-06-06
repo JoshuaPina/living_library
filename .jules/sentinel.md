@@ -26,3 +26,8 @@
 **Vulnerability:** The frontend code assigned `error.message` directly to `.innerHTML` when API requests failed. Since FastAPI's default 422 Unprocessable Entity responses for validation errors reflect the raw, unescaped user input in their JSON payload, injecting malicious scripts into the payload triggered a reflected DOM-based XSS when the frontend blindly rendered this error.
 **Learning:** FastAPI/Pydantic validation errors automatically reflect raw user input. If the frontend dynamically renders these backend error payloads directly into the DOM using methods like `.innerHTML`, it creates a reflected DOM-based XSS vulnerability.
 **Prevention:** Always explicitly sanitize backend error messages on the frontend, or preferably use safer DOM manipulation properties like `.textContent` or `document.createTextNode()` when updating the UI with potentially untrusted text (like API error messages).
+
+## 2024-06-06 - [Overly Permissive CORS Headers and Methods]
+**Vulnerability:** The FastAPI application used wildcards `"*"` for both the `allow_methods` and `allow_headers` configuration in `CORSMiddleware`, allowing requests to use any HTTP method and send any headers from allowed origins.
+**Learning:** Even if `allow_origins` is restricted, allowing all methods and headers violates the principle of least privilege. An attacker might find an origin that is allowed or can spoof one in some contexts, and then use unconventional methods or headers to exploit other vulnerabilities or bypass security controls.
+**Prevention:** Always restrict `allow_methods` and `allow_headers` to only the specific values required by the application (e.g., `["GET", "POST"]` and `["Content-Type", "Authorization"]`).
