@@ -608,15 +608,25 @@ searchForm.addEventListener('submit', async (e) => {
                 ? result.chunk_text.substring(0, 150) + '...' 
                 : result.chunk_text;
 
-            item.innerHTML = `
-                <span class="title">
-                    <a href="/app/viewer.html?id=${result.material_id}" target="_blank">
-                        ${result.title}
-                    </a>
-                </span>
-                <div class="page">Page: ${result.page_number}</div>
-                <div class="snippet">"...${snippet}..."</div>
-            `;
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'title';
+            const titleLink = document.createElement('a');
+            titleLink.href = `/app/viewer.html?id=${encodeURIComponent(result.material_id)}`;
+            titleLink.target = '_blank';
+            titleLink.textContent = result.title;
+            titleSpan.appendChild(titleLink);
+
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'page';
+            pageDiv.textContent = `Page: ${result.page_number}`;
+
+            const snippetDiv = document.createElement('div');
+            snippetDiv.className = 'snippet';
+            snippetDiv.textContent = `"...${snippet}..."`;
+
+            item.appendChild(titleSpan);
+            item.appendChild(pageDiv);
+            item.appendChild(snippetDiv);
             searchResults.appendChild(item);
         });
 
