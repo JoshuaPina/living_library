@@ -26,3 +26,7 @@
 **Vulnerability:** The frontend code assigned `error.message` directly to `.innerHTML` when API requests failed. Since FastAPI's default 422 Unprocessable Entity responses for validation errors reflect the raw, unescaped user input in their JSON payload, injecting malicious scripts into the payload triggered a reflected DOM-based XSS when the frontend blindly rendered this error.
 **Learning:** FastAPI/Pydantic validation errors automatically reflect raw user input. If the frontend dynamically renders these backend error payloads directly into the DOM using methods like `.innerHTML`, it creates a reflected DOM-based XSS vulnerability.
 **Prevention:** Always explicitly sanitize backend error messages on the frontend, or preferably use safer DOM manipulation properties like `.textContent` or `document.createTextNode()` when updating the UI with potentially untrusted text (like API error messages).
+## 2026-05-18 - [XSS via URL query parameters]
+**Vulnerability:** Dynamic variables were directly concatenated into HTML `href` attributes (e.g., `href="/app/viewer.html?id=${id}"`), leaving the application vulnerable to injection attacks if the variable contained malicious payloads.
+**Learning:** When dynamically constructing HTML `href` attributes containing variables in URL parameters, the variable must be URL-encoded first before it can be safely rendered.
+**Prevention:** Ensure all dynamic properties used in URL query parameters are explicitly sanitized using `encodeURIComponent()`.

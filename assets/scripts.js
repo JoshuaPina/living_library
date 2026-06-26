@@ -559,7 +559,7 @@ async function loadDynamicSidebar() {
                 // Add link to the viewer (this logic is unchanged)
                 const bookLink = document.createElement('a');
                 bookLink.textContent = book.title;
-                bookLink.href = `/app/viewer.html?id=${book.material_id}`;
+                bookLink.href = `/app/viewer.html?id=${encodeURIComponent(book.material_id)}`;
                 bookLink.style.color = '#ccc';
                 bookLink.style.textDecoration = 'none';
                 bookLink.onmouseover = () => bookLink.style.color = '#fff';
@@ -648,7 +648,7 @@ searchForm.addEventListener('submit', async (e) => {
 
             item.innerHTML = `
                 <span class="title">
-                    <a href="/app/viewer.html?id=${escapeHTML(result.material_id)}" target="_blank">
+                    <a href="/app/viewer.html?id=${escapeHTML(encodeURIComponent(result.material_id))}" target="_blank">
                         ${escapeHTML(result.title)}
                     </a>
                 </span>
