@@ -410,19 +410,19 @@ function updateNodeDetails(node) {
             ? `<div style="margin-top: 10px;">
                  <strong style="color: #4a9eff;">Materials:</strong>
                  <ul style="margin: 8px 0 0 0; padding-left: 20px; line-height: 1.8;">
-                   ${materials.map(m => `<li style="color: #ccc;">${m}</li>`).join('')}
+                   ${materials.map(m => `<li style="color: #ccc;">${escapeHTML(m)}</li>`).join('')}
                  </ul>
                </div>`
             : '';
         
         detailsDiv.innerHTML = `
             <div class="node-info">
-                <div class="node-title">${node.label.replace(/\n/g, ' ')}</div>
+                <div class="node-title">${escapeHTML(node.label.replace(/\n/g, ' '))}</div>
                 <div style="margin-top: 8px; line-height: 1.5;">
-                    ${node.description}
+                    ${escapeHTML(node.description)}
                 </div>
                 <div style="margin-top: 10px; color: ${node.type === 'launch' ? '#00d4ff' : '#4a9eff'}; font-size: 11px;">
-                    ${node.type === 'launch' ? '🚀' : '📚'} ${node.materials}
+                    ${node.type === 'launch' ? '🚀' : '📚'} ${escapeHTML(node.materials)}
                 </div>
                 ${materialsHTML}
             </div>
@@ -648,7 +648,7 @@ searchForm.addEventListener('submit', async (e) => {
 
             item.innerHTML = `
                 <span class="title">
-                    <a href="/app/viewer.html?id=${escapeHTML(result.material_id)}" target="_blank">
+                    <a href="/app/viewer.html?id=${escapeHTML(encodeURIComponent(result.material_id))}" target="_blank">
                         ${escapeHTML(result.title)}
                     </a>
                 </span>
