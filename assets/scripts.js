@@ -648,7 +648,7 @@ searchForm.addEventListener('submit', async (e) => {
 
             item.innerHTML = `
                 <span class="title">
-                    <a href="/app/viewer.html?id=${escapeHTML(result.material_id)}" target="_blank">
+                    <a href="/app/viewer.html?id=${escapeHTML(encodeURIComponent(result.material_id))}" target="_blank">
                         ${escapeHTML(result.title)}
                     </a>
                 </span>
