@@ -26,3 +26,8 @@
 **Vulnerability:** The frontend code assigned `error.message` directly to `.innerHTML` when API requests failed. Since FastAPI's default 422 Unprocessable Entity responses for validation errors reflect the raw, unescaped user input in their JSON payload, injecting malicious scripts into the payload triggered a reflected DOM-based XSS when the frontend blindly rendered this error.
 **Learning:** FastAPI/Pydantic validation errors automatically reflect raw user input. If the frontend dynamically renders these backend error payloads directly into the DOM using methods like `.innerHTML`, it creates a reflected DOM-based XSS vulnerability.
 **Prevention:** Always explicitly sanitize backend error messages on the frontend, or preferably use safer DOM manipulation properties like `.textContent` or `document.createTextNode()` when updating the UI with potentially untrusted text (like API error messages).
+
+## 2024-06-01 - [Reflected DOM XSS via Unsanitized dynamic properties in Test Scripts]
+**Vulnerability:** The auxiliary frontend code `assets/test_scripts_assets.js` dynamically rendered API response properties like `result.title`, `node.label`, and `snippet` directly into the DOM using `.innerHTML` inside template literals without sanitizing them.
+**Learning:** Auxiliary and testing frontend scripts must strictly adhere to the same XSS prevention standards as production scripts. Missing sanitization allows reflected DOM-based XSS if the data being rendered originates from user input or is manipulated in the backend.
+**Prevention:** Always define and use a global `escapeHTML()` function to explicitly wrap dynamic variables or user-provided data before injecting it into the DOM via `.innerHTML` across all scripts.
