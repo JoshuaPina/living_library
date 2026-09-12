@@ -14,7 +14,7 @@ function openBook(material_id) {
     
     // This will redirect the browser to a new page,
     // passing the material_id in the URL
-    window.location.href = `/app/viewer.html?id=${material_id}`;
+    window.location.href = `/app/viewer.html?id=${encodeURIComponent(material_id)}`;
 }
 
 // Function to get a consistent color for a topic
@@ -102,7 +102,7 @@ function createBookCard(material) {
             </div>
             
             ${isAccessible 
-                ? `<button onclick="openBook(${escapeHTML(material.material_id)})" class="btn-primary">
+                ? `<button onclick="openBook('${escapeHTML(material.material_id)}')" class="btn-primary">
                       📖 Read Now
                   </button>`
                 : `<span class="badge local-only">
